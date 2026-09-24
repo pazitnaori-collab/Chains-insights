@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TopRank</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f7f5f2; color: rgba(0,0,0,0.76); font-size: 14px; min-width: 1100px; }
+
+/* ── Site Header ── */
+.site-header { background: #fff; border-bottom: 1px solid #eee; height: 64px; display: flex; align-items: center; padding: 0 32px; position: sticky; top: 0; z-index: 100; }
+.site-header .logo { display: flex; align-items: center; gap: 12px; margin-right: 24px; }
+.logo-icon { width: 40px; height: 40px; background: #FF8000; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.logo-icon svg { width: 24px; height: 24px; fill: white; }
+.site-nav { display: flex; gap: 4px; flex: 1; }
+.site-nav a { padding: 8px 12px; font-size: 14px; font-weight: 500; color: rgba(0,0,0,0.64); text-decoration: none; border-radius: 6px; }
+.site-nav a:hover { background: #f5f5f5; color: rgba(0,0,0,0.76); }
+.site-nav a.active { color: rgba(0,0,0,0.76); }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.search-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f5f5f5; border-radius: 8px; width: 200px; font-size: 14px; color: rgba(0,0,0,0.44); }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* ── Page container ── */
+.page { max-width: 1440px; margin: 0 auto; padding: 24px 32px 48px; }
+
+/* ── Page Header ── */
+.page-header { margin-bottom: 0; }
+.page-header h1 { font-size: 28px; font-weight: 900; color: rgba(0,0,0,0.88); margin-bottom: 8px; letter-spacing: -0.3px; }
+.page-header p { font-size: 14px; color: rgba(0,0,0,0.64); line-height: 1.5; max-width: 860px; margin-bottom: 20px; }
+.page-tabs { display: flex; border-bottom: 1px solid #e8e4e0; gap: 0; margin-bottom: 24px; }
+.tab { padding: 10px 16px; font-size: 14px; font-weight: 500; color: rgba(0,0,0,0.64); background: none; border: none; cursor: pointer; position: relative; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab:hover { color: rgba(0,0,0,0.76); }
+.tab.active { color: rgba(0,0,0,0.88); border-bottom-color: #FF8000; }
+
+/* ── Views ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── Section ── */
+.section { background: white; border: 1px solid #f0ece6; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); }
+.section-title { font-size: 16px; font-weight: 700; color: rgba(0,0,0,0.88); margin-bottom: 16px; }
+
+/* ── Chips ── */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid #ddd; background: white; color: rgba(0,0,0,0.76); transition: all 0.15s; user-select: none; }
+.chip:hover { border-color: #aaa; }
+.chip.selected { background: #1a1a1a; color: white; border-color: #1a1a1a; }
+.chip .check { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; }
+
+/* ── Metric cards grid ── */
+.metric-grid { display: grid; gap: 16px; }
+.metric-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.metric-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+/* ── Metric card ── */
+.metric-card { background: white; border: 1px solid #f0ece6; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+.metric-card .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.metric-card .card-label { font-size: 15px; font-weight: 700; color: rgba(0,0,0,0.76); }
+.metric-card .card-info { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: rgba(0,0,0,0.4); cursor: help; flex-shrink: 0; }
+.metric-card .card-value { font-size: 28px; font-weight: 900; color: rgba(0,0,0,0.88); letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 8px; }
+.metric-card .card-sub { font-size: 13px; color: rgba(0,0,0,0.56); }
+.metric-card .card-trend { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.trend-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 700; background: #ceeed3; color: #2b7836; }
+.trend-badge.down { background: #fde8e8; color: #c0392b; }
+.trend-date { font-size: 12px; color: rgba(0,0,0,0.44); }
+
+/* ── Chart section ── */
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.period-chips { display: flex; gap: 8px; }
+.chart-legend { display: flex; gap: 16px; margin-bottom: 16px; }
+.legend-chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1.5px solid transparent; background: white; color: rgba(0,0,0,0.76); transition: all 0.15s; user-select: none; }
+.legend-chip .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-chip.hidden { opacity: 0.4; text-decoration: line-through; }
+.legend-chip:hover { background: #f5f5f5; }
+.chart-wrap { position: relative; height: 300px; }
+
+/* ── Campaign bar ── */
+.campaign-bar { display: flex; align-items: center; gap: 12px; padding: 0 0 12px; }
+.back-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #ddd; border-radius: 20px; background: white; font-size: 13px; font-weight: 500; cursor: pointer; color: rgba(0,0,0,0.76); }
+.back-btn:hover { background: #f5f5f5; }
+.merchant-name { font-size: 15px; font-weight: 700; }
+.tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; background: #f0ece6; color: rgba(0,0,0,0.64); border: 1px solid #e8e4e0; }
+.campaign-meta { font-size: 13px; color: rgba(0,0,0,0.64); padding: 0 0 20px; }
+.campaign-meta strong { font-weight: 600; color: rgba(0,0,0,0.76); }
+.mcds-logo { width: 32px; height: 32px; background: #FFC72C; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; color: #DA291C; font-style: italic; line-height: 1; }
+.sb-logo { width: 32px; height: 32px; background: #00704A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: white; }
+
+/* ── Home page ── */
+.home-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.home-title { font-size: 22px; font-weight: 700; color: rgba(0,0,0,0.88); }
+.filter-row { display: flex; gap: 10px; }
+.dropdown { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; background: white; font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.76); cursor: pointer; user-select: none; white-space: nowrap; }
+.dropdown:hover { border-color: #aaa; }
+.dropdown svg { flex-shrink: 0; }
+
+/* ── Merchant group card ── */
+.merchant-group { background: white; border: 1px solid #f0ece6; border-radius: 12px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02); }
+.merchant-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid #f0ece6; }
+.merchant-group-name { font-size: 15px; font-weight: 700; color: rgba(0,0,0,0.88); }
+.divider-v { width: 1px; height: 24px; background: #e8e4e0; margin: 0 4px; }
+
+/* ── Data table ── */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th { padding: 16px; font-size: 14px; font-weight: 700; color: rgba(0,0,0,0.76); text-align: left; border-bottom: 1px solid rgba(0,0,0,0.08); background: white; }
+.data-table th:last-child { text-align: right; }
+.data-table td { padding: 16px; font-size: 14px; color: rgba(0,0,0,0.76); border-top: 1px solid rgba(0,0,0,0.06); background: white; }
+.data-table tr:hover td { background: #fafaf8; }
+.data-table td:last-child { text-align: right; }
+.insights-btn { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid #e7e2da; background: white; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; position: relative; }
+.insights-btn:hover { border-color: #FF8000; background: #fff8f0; }
+.insights-btn svg { color: #FF8000; }
+.insights-btn .tooltip { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); background: #1a1a1a; color: white; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 6px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.15s; }
+.insights-btn:hover .tooltip { opacity: 1; }
+.insights-btn.first-btn { border-color: #FF8000; background: #fff8f0; }
+
+/* ── Scrollbar indicator ── */
+.scroll-indicator { height: 4px; background: #f0ece6; border-radius: 2px; margin: 0 24px 12px; }
+.scroll-thumb { height: 4px; background: #ccc; border-radius: 2px; width: 25%; }
+
+/* ── Pagination ── */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 24px 0 8px; }
+.page-btn { min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #e8e4e0; border-radius: 6px; background: white; font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.64); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.page-btn:hover { border-color: #aaa; color: rgba(0,0,0,0.88); }
+.page-btn.active { background: #1a1a1a; border-color: #1a1a1a; color: white; }
+.page-btn.nav { font-size: 16px; }
+.page-ellipsis { padding: 0 4px; color: rgba(0,0,0,0.44); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- Site Header -->
+<header class="site-header">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    </div>
+  </div>
+  <nav class="site-nav">
+    <a href="#">Orders</a>
+    <a href="#">Signups</a>
+    <a href="#">Settings</a>
+    <a href="#">Tasks</a>
+    <a href="#">Messages</a>
+    <a href="#" class="active">Apps</a>
+  </nav>
+  <div class="header-right">
+    <div class="search-bar">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Search
+    </div>
+    <div class="tag" style="border-radius:6px;">🇳🇱 EN</div>
+    <div class="avatar">P</div>
+  </div>
+</header>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- Page Header (shared) -->
+  <div class="page-header">
+    <h1>TopRank</h1>
+    <p>TopRank is the advertising solution that restaurants can use to improve their ranking on our website and app. Once a restaurant activates TopRank, it will appear as 'Sponsored' on our platform. Search for the restaurant you want to get a single campaign started or set up bulk campaigns below.</p>
+    <div class="page-tabs">
+      <button class="tab active" id="tab-home" onclick="showView('home')">Home</button>
+      <button class="tab" id="tab-active" onclick="showView('active')">Active campaigns</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       HOME VIEW — campaigns list
+       ══════════════════════════════════════════ -->
+  <div class="view active" id="view-home">
+
+    <div class="home-header">
+      <div class="home-title">Active campaigns</div>
+      <div class="filter-row">
+        <button class="dropdown">
+          All campaigns ID
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="dropdown">
+          All brand chains
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button class="dropdown">
+          Last 7 days
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- McDonald's group -->
+    <div class="merchant-group">
+      <div class="merchant-group-header">
+        <div class="mcds-logo">M</div>
+        <span class="merchant-group-name">McDonald's® – UK</span>
+        <div class="divider-v"></div>
+        <span class="tag">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          271 stores
+        </span>
+        <span class="tag">MCDS-UK</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Created in</th>
+            <th>Created by</th>
+            <th>Nº of active stores</th>
+            <th>HQ ID</th>
+            <th>Insights</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>14/01/2026</td>
+            <td>James Eriksen</td>
+            <td>271 stores</td>
+            <td>MCDS-UK-DEAL-001</td>
+            <td>
+              <button class="insights-btn first-btn" onclick="showView('active')" title="View insights">
+                <span class="tooltip">View insights</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8000" stroke-width="1.8">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>14/01/2026</td>
+            <td>James Eriksen</td>
+            <td>271 stores</td>
+            <td>MCDS-UK-DEAL-002</td>
+            <td>
+              <button class="insights-btn">
+                <span class="tooltip">View insights</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8000" stroke-width="1.8">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>14/01/2026</td>
+            <td>James Eriksen</td>
+            <td>271 stores</td>
+            <td>MCDS-UK-DEAL-003</td>
+            <td>
+              <button class="insights-btn">
+                <span class="tooltip">View insights</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8000" stroke-width="1.8">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr>
+            <td>14/01/2026</td>
+            <td>James Eriksen</td>
+            <td>271 stores</td>
+            <td>MCDS-UK-DEAL-004</td>
+            <td>
+              <button class="insights-btn">
+                <span class="tooltip">View insights</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8000" stroke-width="1.8">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:8px 24px 12px">
+        <div class="scroll-indicator"><div class="scroll-thumb"></div></div>
+      </div>
+    </div>
+
+    <!-- Starbucks group -->
+    <div class="merchant-group">
+      <div class="merchant-group-header">
+        <div class="sb-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+        </div>
+        <span class="merchant-group-name">Starbucks – UK</span>
+        <div class="divider-v"></div>
+        <span class="tag">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          91 stores
+        </span>
+        <span class="tag">SB-UK</span>
+      </div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Created in</th>
+            <th>Created by</th>
+            <th>Nº of active stores</th>
+            <th>HQ ID</th>
+            <th>Insights</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>14/01/2026</td>
+            <td>James Eriksen</td>
+            <td>91 stores</td>
+            <td>SB-UK-DEAL-001</td>
+            <td>
+              <button class="insights-btn">
+                <span class="tooltip">View insights</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF8000" stroke-width="1.8">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:8px 24px 12px">
+        <div class="scroll-indicator"><div class="scroll-thumb"></div></div>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn nav">&#8249;</button>
+      <button class="page-btn active">1</button>
+      <button class="page-btn">2</button>
+      <button class="page-btn">3</button>
+      <button class="page-btn">4</button>
+      <button class="page-btn">5</button>
+      <span class="page-ellipsis">…</span>
+      <button class="page-btn">10</button>
+      <button class="page-btn nav">&#8250;</button>
+    </div>
+
+  </div><!-- /view-home -->
+
+
+  <!-- ══════════════════════════════════════════
+       ACTIVE CAMPAIGNS VIEW — insights
+       ══════════════════════════════════════════ -->
+  <div class="view" id="view-active">
+
+    <!-- Campaign Info Bar -->
+    <div class="campaign-bar">
+      <button class="back-btn" onclick="showView('home')">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </button>
+      <div class="mcds-logo">M</div>
+      <span class="merchant-name">McDonald's® – UK</span>
+      <span class="tag">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        271 stores
+      </span>
+      <span class="tag">MCDS-UK</span>
+    </div>
+
+    <!-- Campaign Meta -->
+    <div class="campaign-meta">
+      Started: <strong>1 Aug 2026</strong> &nbsp; Running until stopped &nbsp; Bidding: <strong>Auto — 10x ROAS</strong>
+    </div>
+
+    <!-- Performance Section -->
+    <div class="section">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:0">Performance</div>
+        <button onclick="exportCSV()" style="display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#1a1a1a;color:white;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+          <svg width="14" height="14" fill="none" stroke="white" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export to CSV
+        </button>
+      </div>
+      <div class="chips" id="perf-chips">
+        <button class="chip selected" onclick="selectChip(this, 'perf-chips')">
+          <span class="check"><svg width="12" height="12" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+          Full campaign
+        </button>
+        <button class="chip" onclick="selectChip(this, 'perf-chips')">This week</button>
+        <button class="chip" onclick="selectChip(this, 'perf-chips')">Last week</button>
+        <button class="chip" onclick="selectChip(this, 'perf-chips')">Custom</button>
+      </div>
+      <div class="metric-grid cols-3">
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">ROAS</span><span class="card-info">i</span></div>
+          <div class="card-value">4.2x</div>
+          <div class="card-trend"><span class="trend-badge">▲ 3%</span><span class="trend-date">vs. 20/07 – 27/07</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">TopRank orders</span><span class="card-info">i</span></div>
+          <div class="card-value">12,847</div>
+          <div class="card-sub">attributed to TopRank</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Ad spend</span><span class="card-info">i</span></div>
+          <div class="card-value">£38,420</div>
+          <div class="card-sub">This week</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Trends Chart -->
+    <div class="section">
+      <div class="chart-header">
+        <div class="section-title" style="margin-bottom:0">Main trends</div>
+        <div class="period-chips" id="period-chips">
+          <button class="chip selected" onclick="setPeriod(this, 'daily')">
+            <span class="check"><svg width="12" height="12" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>
+            Daily
+          </button>
+          <button class="chip" onclick="setPeriod(this, 'monthly')">Monthly</button>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <button class="legend-chip" id="legend-0" onclick="toggleSeries(0)">
+          <span class="dot" style="background:#4F7AF8;"></span>
+          TopRank Orders
+        </button>
+        <button class="legend-chip" id="legend-1" onclick="toggleSeries(1)">
+          <span class="dot" style="background:#F05A5A;"></span>
+          CTR
+        </button>
+        <button class="legend-chip" id="legend-2" onclick="toggleSeries(2)">
+          <span class="dot" style="background:#52A44B;"></span>
+          CVR
+        </button>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="mainChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Conversion Section -->
+    <div class="section">
+      <div class="section-title">Conversion</div>
+      <div class="metric-grid cols-3">
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Impressions</span><span class="card-info">i</span></div>
+          <div class="card-value">142,840</div>
+          <div class="card-sub">SER views</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Clicks</span><span class="card-info">i</span></div>
+          <div class="card-value">4,712</div>
+          <div class="card-sub">Menu page clicks</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Total orders</span><span class="card-info">i</span></div>
+          <div class="card-value">1,847</div>
+          <div class="card-sub">Total order value</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue Section -->
+    <div class="section">
+      <div class="section-title">Revenue</div>
+      <div class="metric-grid cols-4" style="margin-bottom:12px">
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">TopRank sales revenue</span><span class="card-info">i</span></div>
+          <div class="card-value">£23,460</div>
+          <div class="card-sub">SER views</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">GMV</span><span class="card-info">i</span></div>
+          <div class="card-value">£804,200</div>
+          <div class="card-sub">Total order value</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">TopRank GMV</span><span class="card-info">i</span></div>
+          <div class="card-value">£23,460</div>
+          <div class="card-sub">Menu page clicks</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">AVG CPO</span><span class="card-info">i</span></div>
+          <div class="card-value">£4.57</div>
+          <div class="card-trend"><span class="trend-badge">▲ 3%</span><span class="trend-date">vs. 20/07 – 27/07</span></div>
+        </div>
+      </div>
+      <div class="metric-grid cols-4">
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Place holder</span><span class="card-info">i</span></div>
+          <div class="card-value">£1</div>
+          <div class="card-sub">SER views</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Place holder</span><span class="card-info">i</span></div>
+          <div class="card-value">£1</div>
+          <div class="card-sub">Total order value</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Place holder</span><span class="card-info">i</span></div>
+          <div class="card-value">£1</div>
+          <div class="card-sub">Menu page clicks</div>
+        </div>
+        <div class="metric-card">
+          <div class="card-header"><span class="card-label">Place holder</span><span class="card-info">i</span></div>
+          <div class="card-value">%1</div>
+          <div class="card-trend"><span class="trend-badge">▲ 3%</span><span class="trend-date">vs. 20/07 – 27/07</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /view-active -->
+
+</div><!-- /page -->
+
+<script>
+/* ── Navigation ── */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'active' && !chart) initChart();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Chip helpers ── */
+function selectChip(btn, groupId) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.chip').forEach(c => {
+    c.classList.remove('selected');
+    const text = c.textContent.trim();
+    c.innerHTML = text;
+  });
+  btn.classList.add('selected');
+  const text = btn.textContent.trim();
+  btn.innerHTML = '<span class="check"><svg width="12" height="12" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>' + text;
+}
+
+function setPeriod(btn, period) {
+  currentPeriod = period;
+  document.querySelectorAll('#period-chips .chip').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+  const label = period === 'daily' ? 'Daily' : 'Monthly';
+  btn.innerHTML = '<span class="check"><svg width="12" height="12" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></span>' + label;
+  if (chart) {
+    chart.data = buildChartData(period);
+    chart.update();
+  }
+}
+
+/* ── Chart ── */
+const chartData = {
+  daily: {
+    labels: ['Mon', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    toprank: [55, 130, 140, 30, 110, 170],
+    ctr:     [75, 50,  55,  95, 30,  25],
+    cvr:     [60, 50,  60,  45, 65,  50]
+  },
+  monthly: {
+    labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+    toprank: [80, 115, 145, 125, 165, 185],
+    ctr:     [40, 50,  58,  48,  62,  70],
+    cvr:     [30, 35,  45,  38,  52,  57]
+  }
+};
+
+let currentPeriod = 'daily';
+const seriesVisible = [true, true, true];
+let chart = null;
+
+function buildChartData(period) {
+  const d = chartData[period];
+  return {
+    labels: d.labels,
+    datasets: [
+      {
+        label: 'TopRank Orders',
+        data: d.toprank,
+        borderColor: '#4F7AF8',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: '#4F7AF8',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        yAxisID: 'y1',
+        hidden: !seriesVisible[0]
+      },
+      {
+        label: 'CTR',
+        data: d.ctr,
+        borderColor: '#F05A5A',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: '#F05A5A',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        yAxisID: 'y',
+        hidden: !seriesVisible[1]
+      },
+      {
+        label: 'CVR',
+        data: d.cvr,
+        borderColor: '#52A44B',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: '#52A44B',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.3,
+        yAxisID: 'y',
+        hidden: !seriesVisible[2]
+      }
+    ]
+  };
+}
+
+function initChart() {
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: buildChartData('daily'),
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'white',
+          titleColor: 'rgba(0,0,0,0.76)',
+          bodyColor: 'rgba(0,0,0,0.64)',
+          borderColor: '#e8e4e0',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            label: ctx => {
+              const label = ctx.dataset.label || '';
+              const val = ctx.parsed.y;
+              return label === 'TopRank Orders' ? ` ${label}: ${val}` : ` ${label}: ${val}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { color: 'rgba(0,0,0,0.44)', font: { size: 12 } },
+          border: { color: 'rgba(0,0,0,0.08)' }
+        },
+        y: {
+          position: 'left', min: 0, max: 100,
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { color: 'rgba(0,0,0,0.44)', font: { size: 12 }, stepSize: 25 },
+          border: { color: 'transparent' }
+        },
+        y1: {
+          position: 'right', min: 0, max: 200,
+          grid: { display: false },
+          ticks: { color: 'rgba(0,0,0,0.44)', font: { size: 12 }, stepSize: 50 },
+          border: { color: 'rgba(0,0,0,0.08)' }
+        }
+      }
+    }
+  });
+}
+
+function exportCSV() {
+  const rows = [['Date','TopRank Orders','CTR (%)','CVR (%)']];
+  const d = chartData[currentPeriod];
+  d.labels.forEach((label, i) => {
+    rows.push([label, d.toprank[i], d.ctr[i], d.cvr[i]]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'toprank-performance.csv';
+  a.click();
+}
+
+function toggleSeries(index) {
+  seriesVisible[index] = !seriesVisible[index];
+  if (chart) {
+    chart.data.datasets[index].hidden = !seriesVisible[index];
+    chart.update();
+  }
+  document.getElementById('legend-' + index).classList.toggle('hidden', !seriesVisible[index]);
+}
+</script>
+</body>
+</html>
